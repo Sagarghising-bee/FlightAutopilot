@@ -10,14 +10,12 @@
 </div>
 
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-    
     <div class="flex bg-gray-100 p-1 rounded-lg mb-5">
         <div class="w-1/2 text-center py-2 bg-white rounded shadow-sm text-xs font-bold text-gray-800">One Way</div>
         <div class="w-1/2 text-center py-2 text-xs font-bold text-gray-400 cursor-not-allowed">Round Trip (Pro)</div>
     </div>
 
     <form action="/results" method="GET" class="space-y-5">
-        
         <datalist id="airport-codes">
             <option value="LHR">London Heathrow (LHR)</option>
             <option value="JFK">New York Kennedy (JFK)</option>
@@ -25,8 +23,6 @@
             <option value="BKK">Bangkok (BKK)</option>
             <option value="DXB">Dubai (DXB)</option>
             <option value="SYD">Sydney (SYD)</option>
-            <option value="FRA">Frankfurt (FRA)</option>
-            <option value="LAX">Los Angeles (LAX)</option>
         </datalist>
 
         <div>
@@ -45,11 +41,25 @@
             </div>
         </div>
         
-        <div>
-            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
-            <div class="relative">
-                <i class="fa-regular fa-calendar absolute left-4 top-3.5 text-blue-500"></i>
-                <input type="date" name="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
+                <div class="relative">
+                    <i class="fa-regular fa-calendar absolute left-3 top-3.5 text-blue-500"></i>
+                    <input type="date" name="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-9 pr-2 text-gray-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Currency</label>
+                <div class="relative">
+                    <i class="fa-solid fa-coins absolute left-3 top-3.5 text-blue-500"></i>
+                    <select name="currency" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-9 pr-2 text-gray-800 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none">
+                        <option value="USD">USD ($)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="AUD">AUD (A$)</option>
+                    </select>
+                </div>
             </div>
         </div>
         
