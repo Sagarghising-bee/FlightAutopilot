@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-md text-center mb-6 mt-4">
+    <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Autopilot <span class="text-blue-600">Pro</span></h1>
+    <p class="text-sm text-gray-500 mt-1">Predictive AI Delay Tracking</p>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+    <label class="block text-sm font-semibold text-gray-700 mb-2">Flight Number</label>
+    <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fa-solid fa-ticket text-gray-400"></i>
+        </div>
+        <input type="text" id="pnrInput" class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 uppercase font-mono text-lg transition-colors" placeholder="e.g. BA142">
+    </div>
+    <button onclick="checkFlight()" id="searchBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md flex justify-center items-center gap-2">
+        <span>Analyze Flight</span> <i class="fa-solid fa-arrow-right"></i>
+    </button>
+</div>
+
+<div id="loadingState" class="hidden w-full max-w-md flex flex-col items-center justify-center py-6">
+    <i class="fa-solid fa-circle-notch fa-spin text-blue-600 text-4xl mb-4"></i>
+    <p class="text-blue-600 font-medium animate-pulse">Neural network computing risk...</p>
+</div>
+
+<div id="errorMsg" class="hidden w-full max-w-md bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm">
+    <p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Error</p>
+    <p id="errorText" class="text-sm mt-1"></p>
+</div>
+
+<div id="resultsContainer" class="hidden w-full max-w-md space-y-4">
+    <div class="bg-white rounded-2xl shadow-sm border-t-4 border-blue-600 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <div class="text-2xl font-black font-mono tracking-tight text-gray-900" id="resFlight">BA142</div>
+            <div class="text-sm font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full"><i class="fa-regular fa-clock mr-1"></i> <span id="resTime"></span></div>
+        </div>
+        <p class="text-gray-600 font-bold mb-4" id="resRoute">LHR ➔ JFK</p>
+
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+            <div class="flex justify-between items-end mb-2">
+                <span class="text-sm font-bold text-gray-700 uppercase tracking-wider">AI Delay Risk</span>
+                <span class="text-2xl font-black" id="resProbText">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-3 overflow-hidden">
+                <div id="resProbBar" class="h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+            </div>
+            <p class="text-xs text-gray-500" id="resMessage"><i class="fa-solid fa-microchip mr-1"></i> Active.</p>
+        </div>
+    </div>
+
+    <div id="backupsContainer" class="hidden mt-4 pb-6">
+        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 ml-1">Alternative Routes</h3>
+        <div id="backupsList" class="space-y-3"></div>
+    </div>
+</div>
+
+<script>
+    // UX MAGIC: Automatically grabs the flight number if passed from the Results page!
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const prefillFlight = urlParams.get('flight');
+        if (prefillFlight) {
+            document.getElementById('pnrInput').value = prefillFlight;
+            checkFlight(); // Auto-run the AI if a flight was passed!
+        }
+    });
+
+    async function checkFlight() {
+        const pnr = document.getElementById('pnrInput').value;
+        const btn = document.getElementById('searchBtn');
+        const loader = document.getElementById('loadingState');
+        const results = document.getElementById('resultsContainer');
+        const errorBox = document.getElementById('errorMsg');
+        
+        if(!pnr) return;
+
+        btn.disabled = true; btn.classList.add('opacity-50');
+        results.classList.add('hidden'); errorBox.classList.add('hidden'); loader.classList.remove('hidden');
+
+        try {
+            await new Promise(r => setTimeout(r, 1200)); // Simulated AI delay for effect
+            const response = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pnr: pnr })
+            });
+            
+            const data = await response.json();
+            loader.classList.add('hidden');
+            
+            if (response.ok) {
+                populateResults(data);
+                results.classList.remove('hidden');
+            } else {
+                document.getElementById('errorText').innerText = data.error || "Server connection failed.";
+                errorBox.classList.remove('hidden');
+            }
+        } catch (error) {
+            loader.classList.add('hidden');
+            document.getElementById('errorText').innerText = "Network error. Please try again.";
+            errorBox.classList.remove('hidden');
+        }
+        btn.disabled = false; btn.classList.remove('opacity-50');
+    }
+
+    function populateResults(data) {
+        document.getElementById('resFlight').innerText = data.flight_number;
+        document.getElementById('resTime').innerText = data.scheduled_time;
+        document.getElementById('resRoute').innerText = data.route;
+
+        const prob = data.delay_probability;
+        const probText = document.getElementById('resProbText');
+        const probBar = document.getElementById('resProbBar');
+        
+        probText.innerText = prob + '%';
+        probBar.style.width = '0%';
+        setTimeout(() => { probBar.style.width = prob + '%'; }, 100);
+
+        probBar.className = 'h-2.5 rounded-full transition-all duration-1000 ease-out';
+        probText.className = 'text-2xl font-black';
+        if (prob < 30) { probBar.classList.add('bg-green-500'); probText.classList.add('text-green-600'); }
+        else if (prob < 70) { probBar.classList.add('bg-yellow-500'); probText.classList.add('text-yellow-600'); }
+        else { probBar.classList.add('bg-red-500'); probText.classList.add('text-red-600'); }
+
+        document.getElementById('resMessage').innerText = data.message;
+
+        const backupsDiv = document.getElementById('backupsContainer');
+        const backupsList = document.getElementById('backupsList');
+        backupsList.innerHTML = ''; 
+
+        if (data.autopilot_triggered && data.backups.length > 0) {
+            backupsDiv.classList.remove('hidden');
+            data.backups.forEach(backup => {
+                backupsList.innerHTML += `
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-indigo-500 p-4 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold text-gray-800">${backup.airline}</p>
+                        <p class="text-sm text-gray-500"><i class="fa-regular fa-clock mr-1"></i> Departs ${backup.time}</p>
+                    </div>
+                    <span class="bg-green-100 text-green-800 font-black px-3 py-1 rounded-lg">${backup.price}</span>
+                </div>`;
+            });
+        } else {
+            backupsDiv.classList.add('hidden');
+        }
+    }
+</script>
+{% endblock %}
