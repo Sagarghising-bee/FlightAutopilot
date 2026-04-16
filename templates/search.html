@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-6 mt-4 text-center">
+    <div class="inline-block bg-blue-600 text-white p-3 rounded-full mb-3 shadow-lg">
+        <i class="fa-solid fa-earth-americas text-2xl"></i>
+    </div>
+    <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Find Flights</h2>
+    <p class="text-sm text-gray-500 mt-1">Search the global aviation network.</p>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+    <form action="/results" method="GET" class="space-y-5">
+        <div>
+            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Leaving From</label>
+            <div class="relative">
+                <i class="fa-solid fa-plane-departure absolute left-4 top-3.5 text-blue-500"></i>
+                <input type="text" name="origin" placeholder="e.g. LHR" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+            </div>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Going To</label>
+            <div class="relative">
+                <i class="fa-solid fa-plane-arrival absolute left-4 top-3.5 text-blue-500"></i>
+                <input type="text" name="destination" placeholder="e.g. JFK" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+            </div>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
+            <div class="relative">
+                <i class="fa-regular fa-calendar absolute left-4 top-3.5 text-blue-500"></i>
+                <input type="date" name="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+            </div>
+        </div>
+        <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl mt-4 hover:bg-black shadow-lg transition-all flex justify-center items-center gap-2">
+            <i class="fa-solid fa-magnifying-glass"></i> Search Tickets
+        </button>
+    </form>
+</div>
+{% endblock %}
