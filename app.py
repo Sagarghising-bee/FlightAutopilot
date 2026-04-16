@@ -28,16 +28,21 @@ def home():
     # The default home page is the Search screen
     return render_template('search.html')
 
+
 @app.route('/results')
 def results():
-    # Grab the user's search data
     origin = request.args.get('origin', 'LHR').upper()
     destination = request.args.get('destination', 'JFK').upper()
     date = request.args.get('date', '2026-05-07')
+    currency = request.args.get('currency', 'USD').upper()
     
+    # Map the currency code to its actual symbol for the UI
+    symbols = {'USD': '$', 'GBP': '£', 'EUR': '€', 'AUD': 'A$'}
+    sym = symbols.get(currency, '$')
+
+    SERPAPI_KEY = "4e128895a92ee39c16907fa5fea0a8214cc21ccc75392d557f6e6da2e2b27753" 
     real_flights = []
 
-    # FETCH LIVE GOOGLE FLIGHTS DATA
     try:
         url = "https://serpapi.com/search.json"
         params = {
@@ -45,7 +50,7 @@ def results():
             "departure_id": origin,
             "arrival_id": destination,
             "outbound_date": date,
-            "currency": "USD",
+            "currency": currency, # Dynamically passing user's currency to Google!
             "hl": "en",
             "api_key": SERPAPI_KEY
         }
@@ -53,15 +58,13 @@ def results():
         response = requests.get(url, params=params, timeout=8)
         data = response.json()
 
-        # Parse Google's 'Best Flights' list
         if 'best_flights' in data:
-            for item in data['best_flights'][:4]: # Grab top 4 flights
+            for item in data['best_flights'][:4]: 
                 flight_info = item['flights'][0]
-                price = f"${item['price']}"
+                price = f"{sym}{item['price']}" # Injecting the correct symbol
                 airline = flight_info['airline']
                 flight_num = flight_info['flight_number']
                 
-                # Format time nicely from "2026-05-07 14:30" to "14:30"
                 dep_time = flight_info['departure_airport']['time'].split(' ')[1]
 
                 real_flights.append({
@@ -71,17 +74,19 @@ def results():
                     "price": price
                 })
     except Exception as e:
-        pass # If Google fails, we drop down to the Failsafe
+        pass 
 
-    # THE FAILSAFE (Always keeps the app alive during your presentation)
+    # THE FAILSAFE (Now adapts to your chosen currency!)
     if not real_flights:
         real_flights = [
-            {"id": f"BA{random.randint(100, 999)}", "airline": "British Airways", "time": "14:30 Local", "price": f"${random.randint(300, 600)}"},
-            {"id": f"VS{random.randint(10, 99)}", "airline": "Virgin Atlantic", "time": "16:00 Local", "price": f"${random.randint(250, 550)}"},
-            {"id": f"AA{random.randint(100, 999)}", "airline": "American Airlines", "time": "18:15 Local", "price": f"${random.randint(350, 650)}"}
+            {"id": f"BA{random.randint(100, 999)}", "airline": "British Airways", "time": "14:30 Local", "price": f"{sym}{random.randint(300, 600)}"},
+            {"id": f"VS{random.randint(10, 99)}", "airline": "Virgin Atlantic", "time": "16:00 Local", "price": f"{sym}{random.randint(250, 550)}"},
+            {"id": f"AA{random.randint(100, 999)}", "airline": "American Airlines", "time": "18:15 Local", "price": f"{sym}{random.randint(350, 650)}"}
         ]
 
     return render_template('results.html', origin=origin, destination=destination, date=date, flights=real_flights)
+
+    
 
 @app.route('/autopilot')
 def autopilot():
