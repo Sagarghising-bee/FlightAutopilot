@@ -10,21 +10,41 @@
 </div>
 
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+    
+    <div class="flex bg-gray-100 p-1 rounded-lg mb-5">
+        <div class="w-1/2 text-center py-2 bg-white rounded shadow-sm text-xs font-bold text-gray-800">One Way</div>
+        <div class="w-1/2 text-center py-2 text-xs font-bold text-gray-400 cursor-not-allowed">Round Trip (Pro)</div>
+    </div>
+
     <form action="/results" method="GET" class="space-y-5">
+        
+        <datalist id="airport-codes">
+            <option value="LHR">London Heathrow (LHR)</option>
+            <option value="JFK">New York Kennedy (JFK)</option>
+            <option value="KTM">Kathmandu (KTM)</option>
+            <option value="BKK">Bangkok (BKK)</option>
+            <option value="DXB">Dubai (DXB)</option>
+            <option value="SYD">Sydney (SYD)</option>
+            <option value="FRA">Frankfurt (FRA)</option>
+            <option value="LAX">Los Angeles (LAX)</option>
+        </datalist>
+
         <div>
             <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Leaving From</label>
             <div class="relative">
                 <i class="fa-solid fa-plane-departure absolute left-4 top-3.5 text-blue-500"></i>
-                <input type="text" name="origin" placeholder="e.g. LHR" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+                <input list="airport-codes" type="text" name="origin" placeholder="e.g. LHR" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none transition-all" autocomplete="off" required>
             </div>
         </div>
+        
         <div>
             <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Going To</label>
             <div class="relative">
                 <i class="fa-solid fa-plane-arrival absolute left-4 top-3.5 text-blue-500"></i>
-                <input type="text" name="destination" placeholder="e.g. JFK" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
+                <input list="airport-codes" type="text" name="destination" placeholder="e.g. JFK" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 font-mono uppercase focus:ring-2 focus:ring-blue-500 outline-none transition-all" autocomplete="off" required>
             </div>
         </div>
+        
         <div>
             <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
             <div class="relative">
@@ -32,6 +52,7 @@
                 <input type="date" name="date" class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-3 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
             </div>
         </div>
+        
         <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl mt-4 hover:bg-black shadow-lg transition-all flex justify-center items-center gap-2">
             <i class="fa-solid fa-magnifying-glass"></i> Search Tickets
         </button>
