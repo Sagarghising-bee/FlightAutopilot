@@ -1,174 +1,106 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
-import os
-import pickle
-import numpy as np
-import random
+from flask import Flask, request, jsonify, render_template_string
 import requests
+import os
 
 app = Flask(__name__)
 
-# ==========================================
-# 1. SYSTEM INITIALIZATION & API KEYS
-# ==========================================
+# Your FlightLabs JWT Token
+API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiY2YyOTQ3NGU0NDc2NzA3ZjI3NDYyNjI5NTZhZDk2NDBmZmQ2NjdlMzdkNDQyMWNjNDRlZmMzNTU0NzdkZGFhM2RhOGFiNmVhMmIxZmJiOWQiLCJpYXQiOjE3NzkwMzA4NTcsIm5iZiI6MTc3OTAzMDg1NywiZXhwIjoxODEwNTY2ODU3LCJzdWIiOiIyODA1OSIsInNjb3BlcyI6W119.Z_dXcYA4Nl2CJjyUhF-WDZW40IWc7fxrDDgKAXw99UDbIYEWKIPYeProVHp6b5PUtwDywoyVkgbGwxQI-UtIfw"
 
-# Load your custom Machine Learning Model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'flight_model.pkl')
-with open(MODEL_PATH, 'rb') as file:
-    model = pickle.load(file)
-
-AVIATIONSTACK_KEY = 'Bcb16080d02214f0f7fcbda1bb4c4f4a'
-SERPAPI_KEY = "4e128895a92ee39c16907fa5fea0a8214cc21ccc75392d557f6e6da2e2b27753"
-
-# ==========================================
-# 2. USER INTERFACE ROUTES (The Frontend)
-# ==========================================
+# A simple HTML template to show a search form and results
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlightLabs Search</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+        .flight-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 8px; background-color: #f9f9f9;}
+        .error { color: #d9534f; font-weight: bold; padding: 10px; border: 1px solid #d9534f; background: #fdf7f7;}
+    </style>
+</head>
+<body>
+    <h2>✈️ Flight Search (LGW ➔ JFK)</h2>
+    <form method="GET" action="/search">
+        Origin (IATA): <input type="text" name="origin" value="LGW" required><br><br>
+        Destination (IATA): <input type="text" name="destination" value="JFK" required><br><br>
+        Date (YYYY-MM-DD): <input type="text" name="date" value="2026-05-18" required><br><br>
+        <button type="submit" style="padding: 8px 16px; cursor: pointer;">Search Flights</button>
+    </form>
+    <hr>
+    <div id="results">
+        {{ results|safe }}
+    </div>
+</body>
+</html>
+"""
 
 @app.route('/')
 def home():
-    # The default home page is the Search screen
-    return render_template('search.html')
+    return render_template_string(HTML_TEMPLATE, results="<p>Enter your details and hit search.</p>")
 
-
-@app.route('/results')
-def results():
-    origin = request.args.get('origin', 'LHR').upper()
+@app.route('/search')
+def search():
+    origin = request.args.get('origin', 'LGW').upper()
     destination = request.args.get('destination', 'JFK').upper()
-    date = request.args.get('date', '2026-05-07')
-    currency = request.args.get('currency', 'USD').upper()
-    
-    # Map the currency code to its actual symbol for the UI
-    symbols = {'USD': '$', 'GBP': '£', 'EUR': '€', 'AUD': 'A$'}
-    sym = symbols.get(currency, '$')
+    date = request.args.get('date', '2026-05-18')
 
-    SERPAPI_KEY = "4e128895a92ee39c16907fa5fea0a8214cc21ccc75392d557f6e6da2e2b27753" 
-    real_flights = []
-
-    try:
-        url = "https://serpapi.com/search.json"
-        params = {
-            "engine": "google_flights",
-            "departure_id": origin,
-            "arrival_id": destination,
-            "outbound_date": date,
-            "currency": currency, # Dynamically passing user's currency to Google!
-            "hl": "en",
-            "api_key": SERPAPI_KEY
-        }
-        
-        response = requests.get(url, params=params, timeout=8)
-        data = response.json()
-
-        if 'best_flights' in data:
-            for item in data['best_flights'][:4]: 
-                flight_info = item['flights'][0]
-                price = f"{sym}{item['price']}" # Injecting the correct symbol
-                airline = flight_info['airline']
-                flight_num = flight_info['flight_number']
-                
-                dep_time = flight_info['departure_airport']['time'].split(' ')[1]
-
-                real_flights.append({
-                    "id": flight_num,
-                    "airline": airline,
-                    "time": f"{dep_time} Local",
-                    "price": price
-                })
-    except Exception as e:
-        pass 
-
-    # THE FAILSAFE (Now adapts to your chosen currency!)
-    if not real_flights:
-        real_flights = [
-            {"id": f"BA{random.randint(100, 999)}", "airline": "British Airways", "time": "14:30 Local", "price": f"{sym}{random.randint(300, 600)}"},
-            {"id": f"VS{random.randint(10, 99)}", "airline": "Virgin Atlantic", "time": "16:00 Local", "price": f"{sym}{random.randint(250, 550)}"},
-            {"id": f"AA{random.randint(100, 999)}", "airline": "American Airlines", "time": "18:15 Local", "price": f"{sym}{random.randint(350, 650)}"}
-        ]
-
-    return render_template('results.html', origin=origin, destination=destination, date=date, flights=real_flights)
-
-    
-
-@app.route('/autopilot')
-def autopilot():
-    # The flagship AI prediction page
-    return render_template('autopilot.html')
-
-
-# ==========================================
-# 3. AI AUTOPILOT ENGINE (The Backend Brain)
-# ==========================================
-
-@app.route('/api/predict', methods=['POST'])
-def predict_delay():
-    data = request.get_json()
-    flight_iata = data.get('pnr', '').upper().replace(" ", "")
-
-    if not flight_iata:
-        return jsonify({"error": "Please enter a valid Flight Number (e.g., AA100)"}), 400
-
-    # 1. FETCH LIVE FLIGHT DATA FROM AVIATIONSTACK
-    try:
-        api_url = f"http://api.aviationstack.com/v1/flights?access_key={AVIATIONSTACK_KEY}&flight_iata={flight_iata}"
-        api_response = requests.get(api_url, timeout=5)
-        api_data = api_response.json()
-
-        if 'data' not in api_data or len(api_data['data']) == 0:
-            route_str = f"{flight_iata} Route (Simulated Fetch)"
-            time_formatted = "14:30 GMT"
-        else:
-            flight_info = api_data['data'][0]
-            dep = flight_info['departure']['iata'] or "LHR"
-            arr = flight_info['arrival']['iata'] or "JFK"
-            scheduled_time = flight_info['departure']['scheduled']
-            route_str = f"{dep} ➔ {arr} (Live Data)"
-            time_formatted = scheduled_time.split('T')[1][:5] + " GMT" if scheduled_time else "Unknown"
-
-    except Exception as e:
-        route_str = f"{flight_iata} Route (Offline Failsafe)"
-        time_formatted = "14:30 GMT"
-
-    # 2. MOCK WEATHER & LOGIC DATA FOR ML MODEL
-    weather_severity = random.randint(1, 5)
-    inbound_delayed = random.choice([0, 1])
-
-    # 3. RUN THE AI PREDICTION
-    features = np.array([[weather_severity, inbound_delayed]])
-    delay_prob = model.predict_proba(features)[0][1] * 100
-    is_triggered = delay_prob > 75
-
-    backup_flights = [
-        {"airline": "Virgin Atlantic", "time": "16:00 GMT", "price": "$120"},
-        {"airline": "Delta Airlines", "time": "17:15 GMT", "price": "$150"}
-    ] if is_triggered else []
-
-    response = {
-        "status": "success",
-        "pnr": flight_iata,
-        "flight_number": flight_iata,
-        "route": route_str,
-        "scheduled_time": time_formatted,
-        "delay_probability": round(delay_prob, 1),
-        "autopilot_triggered": bool(is_triggered),
-        "message": f"Data - Weather: {weather_severity}/5 | Inbound Late: {bool(inbound_delayed)}. Generating backups..." if is_triggered else "Flight looks good! Have a great trip.",
-        "backups": backup_flights
+    # FlightLabs Pricing Endpoint
+    url = "https://www.goflightlabs.com/retrieveFlights"
+    params = {
+        'access_key': API_KEY,
+        'originIATACode': origin,
+        'destinationIATACode': destination,
+        'date': date
     }
 
-    return jsonify(response)
+    try:
+        # Added a timeout so the server doesn't hang indefinitely
+        response = requests.get(url, params=params, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        
+        flights = data.get('flights', [])
+        if not flights:
+            return render_template_string(HTML_TEMPLATE, results="<p>✅ Status Code: 200, but no flights found.</p>")
+            
+        html_output = f"<h3>✅ Found {len(flights)} flight options</h3>"
+        
+        # Loop through the flights and format them like your Colab output
+        for i, flight in enumerate(flights):
+            price = flight.get('price', 'N/A')
+            currency = flight.get('currency', 'USD')
+            # Extracting nested data (adjust if FlightLabs' JSON structure changes)
+            dep_time = flight.get('departure', {}).get('time', 'N/A')
+            arr_time = flight.get('arrival', {}).get('time', 'N/A')
+            duration = flight.get('duration', 'N/A')
+            stops = flight.get('stops', 'N/A')
 
+            html_output += f"""
+            <div class="flight-card">
+                <b>✈️ Flight {i+1}: {origin} ➔ {destination}</b><br>
+                💰 Price: {currency} ${price}<br>
+                🕘 Departure: {dep_time}<br>
+                🕘 Arrival: {arr_time}<br>
+                ⏱ Duration: {duration}<br>
+                🔁 Stops: {stops}
+            </div>
+            """
+        return render_template_string(HTML_TEMPLATE, results=html_output)
 
-# ==========================================
-# 4. STATIC PWA FILES
-# ==========================================
-
-@app.route('/sw.js')
-def serve_sw():
-    return send_from_directory('static', 'sw.js')
-
-@app.route('/manifest.json')
-def serve_manifest():
-    return send_from_directory('static', 'manifest.json')
-
+    except requests.exceptions.RequestException as e:
+        error_msg = f"""
+        <div class='error'>
+            <p>❌ <b>Error connecting to FlightLabs:</b></p>
+            <p><code>{str(e)}</code></p>
+        </div>
+        """
+        return render_template_string(HTML_TEMPLATE, results=error_msg)
 
 if __name__ == '__main__':
-    # Using host='0.0.0.0' is required for Render server deployment
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    # Render will ignore this block because it uses Gunicorn, but it's good to leave it here 
+    # in case you ever want to test it locally on your own computer!
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    
