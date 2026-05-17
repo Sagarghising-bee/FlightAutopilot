@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template_string
 import requests
 import os
-import time  # We need this to make the app "sleep" and wait
+import time
 
 app = Flask(__name__)
 
@@ -20,17 +20,17 @@ HTML_TEMPLATE = """
         body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
         .flight-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 8px; background-color: #f9f9f9;}
         .error { color: #d9534f; font-weight: bold; padding: 10px; border: 1px solid #d9534f; background: #fdf7f7;}
+        .warning { color: #8a6d3b; font-weight: bold; padding: 15px; border: 1px solid #faebcc; background: #fcf8e3; border-radius: 8px;}
         .debug { background-color: #eee; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: monospace; }
-        .loading { color: #f0ad4e; font-weight: bold; }
     </style>
 </head>
 <body>
     <h2>✈️ Flight Search (Roundtrip)</h2>
     <form method="GET" action="/search">
-        Origin (IATA): <input type="text" name="origin" value="LGW" required><br><br>
-        Destination (IATA): <input type="text" name="destination" value="JFK" required><br><br>
-        Departure Date: <input type="text" name="date" value="2026-05-18" required><br><br>
-        Return Date: <input type="text" name="returnDate" value="2026-05-25" required><br><br>
+        Origin (IATA): <input type="text" name="origin" value="{{ request.args.get('origin', 'LGW') }}" required><br><br>
+        Destination (IATA): <input type="text" name="destination" value="{{ request.args.get('destination', 'JFK') }}" required><br><br>
+        Departure Date: <input type="text" name="date" value="{{ request.args.get('date', '2026-05-18') }}" required><br><br>
+        Return Date: <input type="text" name="returnDate" value="{{ request.args.get('returnDate', '2026-05-25') }}" required><br><br>
         <button type="submit" style="padding: 8px 16px; cursor: pointer;">Search Flights</button>
     </form>
     <hr>
@@ -64,47 +64,46 @@ def search():
     }
 
     try:
-        max_retries = 6  # Will try up to 6 times
+        # We will check 6 times, waiting 4 seconds each time (24 seconds total)
+        max_retries = 6  
         flights = None
 
-        # The Polling Loop: Keep asking if the status is 'processing'
         for attempt in range(max_retries):
             response = requests.get(url, params=params, timeout=15)
             response.raise_for_status()
             data = response.json()
             
-            # If it's a dictionary and says 'processing', wait and try again
             if isinstance(data, dict) and data.get('status') == 'processing':
                 if attempt < max_retries - 1:
-                    time.sleep(4)  # Wait 4 seconds before asking again
+                    time.sleep(4)  
                     continue
                 else:
-                    # If we run out of tries, let the user know it's taking too long
+                    # AUTO-REFRESH FIX: If it takes too long, tell the browser to reload automatically in 4 seconds!
                     timeout_msg = f"""
-                    <div class='error'>
-                        <p>⏳ <b>Search is taking longer than expected.</b></p>
-                        <p>FlightLabs is still searching for prices. Please click "Search Flights" again in a few seconds to get the cached results.</p>
-                        <p><b>Raw Response:</b> {data}</p>
+                    <div class='warning'>
+                        <p>⏳ <b>This is a complex route! Compiling prices...</b></p>
+                        <p>FlightLabs is taking a bit longer to find all the connections for this trip. The page will automatically refresh in a few seconds to grab your results.</p>
                     </div>
+                    <script>
+                        setTimeout(function() {{
+                            window.location.reload(true);
+                        }}, 4000);
+                    </script>
                     """
                     return render_template_string(HTML_TEMPLATE, results=timeout_msg)
             else:
-                # We got the actual list of flights! Break the loop.
                 flights = data
                 break
                 
-        # Now process the actual flight data list
         if not flights:
             return render_template_string(HTML_TEMPLATE, results="<p>✅ Status Code: 200. No flights found for these dates.</p>")
             
-        # Failsafe in case it returns an error dictionary that ISN'T 'processing'
         if isinstance(flights, dict):
             debug_msg = f"<p>❌ API returned an error message:</p><div class='debug'>{flights}</div>"
             return render_template_string(HTML_TEMPLATE, results=debug_msg)
 
         html_output = f"<h3>✅ Found {len(flights)} flight options</h3>"
         
-        # Loop through flights
         for i, flight in enumerate(flights):
             price = flight.get('price', 'N/A')
             currency = flight.get('currency', 'USD')
